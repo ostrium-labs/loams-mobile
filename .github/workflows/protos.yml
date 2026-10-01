@@ -1,0 +1,28 @@
+name: protos
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drift:
+    name: lint, lock and generated-code drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: bufbuild/buf-action@v1
+        with:
+          version: 1.73.0
+          setup_only: true
+      # Remote plugins run on buf.build without a token; that is rate-limited
+      # but enough for this repository's volume. No secret is used.
+      - run: scripts/check-drift.sh
