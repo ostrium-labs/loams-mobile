@@ -94,11 +94,11 @@ func (OperationState) EnumDescriptor() ([]byte, []int) {
 
 type Progress struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 0.0 to 1.0; unset when unknown.
-	Fraction      float64 `protobuf:"fixed64,1,opt,name=fraction,proto3" json:"fraction,omitempty"`
-	Done          uint64  `protobuf:"varint,2,opt,name=done,proto3" json:"done,omitempty"`
-	Total         uint64  `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
-	Message       string  `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	// 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
+	Fraction      *float64 `protobuf:"fixed64,1,opt,name=fraction,proto3,oneof" json:"fraction,omitempty"`
+	Done          uint64   `protobuf:"varint,2,opt,name=done,proto3" json:"done,omitempty"`
+	Total         uint64   `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
+	Message       string   `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -134,8 +134,8 @@ func (*Progress) Descriptor() ([]byte, []int) {
 }
 
 func (x *Progress) GetFraction() float64 {
-	if x != nil {
-		return x.Fraction
+	if x != nil && x.Fraction != nil {
+		return *x.Fraction
 	}
 	return 0
 }
@@ -916,12 +916,13 @@ var File_loams_operations_v1_operations_proto protoreflect.FileDescriptor
 
 const file_loams_operations_v1_operations_proto_rawDesc = "" +
 	"\n" +
-	"$loams/operations/v1/operations.proto\x12\x13loams.operations.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"j\n" +
-	"\bProgress\x12\x1a\n" +
-	"\bfraction\x18\x01 \x01(\x01R\bfraction\x12\x12\n" +
+	"$loams/operations/v1/operations.proto\x12\x13loams.operations.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"|\n" +
+	"\bProgress\x12\x1f\n" +
+	"\bfraction\x18\x01 \x01(\x01H\x00R\bfraction\x88\x01\x01\x12\x12\n" +
 	"\x04done\x18\x02 \x01(\x04R\x04done\x12\x14\n" +
 	"\x05total\x18\x03 \x01(\x04R\x05total\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage\">\n" +
+	"\amessage\x18\x04 \x01(\tR\amessageB\v\n" +
+	"\t_fraction\">\n" +
 	"\x0eOperationError\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\xc5\x04\n" +
@@ -1070,6 +1071,7 @@ func file_loams_operations_v1_operations_proto_init() {
 	if File_loams_operations_v1_operations_proto != nil {
 		return
 	}
+	file_loams_operations_v1_operations_proto_msgTypes[0].OneofWrappers = []any{}
 	file_loams_operations_v1_operations_proto_msgTypes[10].OneofWrappers = []any{
 		(*WatchOperationsResponse_Snapshot)(nil),
 		(*WatchOperationsResponse_Upsert)(nil),

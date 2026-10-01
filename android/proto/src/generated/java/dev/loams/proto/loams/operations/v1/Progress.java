@@ -17,14 +17,27 @@ public  final class Progress extends
   private Progress() {
     message_ = "";
   }
+  private int bitField0_;
   public static final int FRACTION_FIELD_NUMBER = 1;
   private double fraction_;
   /**
    * <pre>
-   * 0.0 to 1.0; unset when unknown.
+   * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
    * </pre>
    *
-   * <code>double fraction = 1 [json_name = "fraction"];</code>
+   * <code>optional double fraction = 1 [json_name = "fraction"];</code>
+   * @return Whether the fraction field is set.
+   */
+  @java.lang.Override
+  public boolean hasFraction() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
+   * </pre>
+   *
+   * <code>optional double fraction = 1 [json_name = "fraction"];</code>
    * @return The fraction.
    */
   @java.lang.Override
@@ -33,25 +46,25 @@ public  final class Progress extends
   }
   /**
    * <pre>
-   * 0.0 to 1.0; unset when unknown.
+   * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
    * </pre>
    *
-   * <code>double fraction = 1 [json_name = "fraction"];</code>
+   * <code>optional double fraction = 1 [json_name = "fraction"];</code>
    * @param value The fraction to set.
    */
   private void setFraction(double value) {
-    
+    bitField0_ |= 0x00000001;
     fraction_ = value;
   }
   /**
    * <pre>
-   * 0.0 to 1.0; unset when unknown.
+   * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
    * </pre>
    *
-   * <code>double fraction = 1 [json_name = "fraction"];</code>
+   * <code>optional double fraction = 1 [json_name = "fraction"];</code>
    */
   private void clearFraction() {
-
+    bitField0_ = (bitField0_ & ~0x00000001);
     fraction_ = 0D;
   }
 
@@ -253,10 +266,22 @@ public  final class Progress extends
 
     /**
      * <pre>
-     * 0.0 to 1.0; unset when unknown.
+     * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
      * </pre>
      *
-     * <code>double fraction = 1 [json_name = "fraction"];</code>
+     * <code>optional double fraction = 1 [json_name = "fraction"];</code>
+     * @return Whether the fraction field is set.
+     */
+    @java.lang.Override
+    public boolean hasFraction() {
+      return instance.hasFraction();
+    }
+    /**
+     * <pre>
+     * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
+     * </pre>
+     *
+     * <code>optional double fraction = 1 [json_name = "fraction"];</code>
      * @return The fraction.
      */
     @java.lang.Override
@@ -265,10 +290,10 @@ public  final class Progress extends
     }
     /**
      * <pre>
-     * 0.0 to 1.0; unset when unknown.
+     * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
      * </pre>
      *
-     * <code>double fraction = 1 [json_name = "fraction"];</code>
+     * <code>optional double fraction = 1 [json_name = "fraction"];</code>
      * @param value The fraction to set.
      * @return This builder for chaining.
      */
@@ -279,10 +304,10 @@ public  final class Progress extends
     }
     /**
      * <pre>
-     * 0.0 to 1.0; unset when unknown.
+     * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
      * </pre>
      *
-     * <code>double fraction = 1 [json_name = "fraction"];</code>
+     * <code>optional double fraction = 1 [json_name = "fraction"];</code>
      * @return This builder for chaining.
      */
     public Builder clearFraction() {
@@ -412,14 +437,15 @@ public  final class Progress extends
       }
       case BUILD_MESSAGE_INFO: {
           java.lang.Object[] objects = new java.lang.Object[] {
+            "bitField0_",
             "fraction_",
             "done_",
             "total_",
             "message_",
           };
           java.lang.String info =
-              "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0000\u0002\u0003" +
-              "\u0003\u0003\u0004\u0208";
+              "\u0000\u0004\u0000\u0001\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u1000\u0000\u0002" +
+              "\u0003\u0003\u0003\u0004\u0208";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

@@ -87,8 +87,15 @@ public nonisolated struct Loams_Operations_V1_Progress: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  /// 0.0 to 1.0; unset when unknown.
-  public var fraction: Double = 0
+  /// 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
+  public var fraction: Double {
+    get {_fraction ?? 0}
+    set {_fraction = newValue}
+  }
+  /// Returns true if `fraction` has been explicitly set.
+  public var hasFraction: Bool {self._fraction != nil}
+  /// Clears the value of `fraction`. Subsequent reads from it will return its default value.
+  public mutating func clearFraction() {self._fraction = nil}
 
   public var done: UInt64 = 0
 
@@ -99,6 +106,8 @@ public nonisolated struct Loams_Operations_V1_Progress: Sendable {
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
+
+  fileprivate var _fraction: Double? = nil
 }
 
 public nonisolated struct Loams_Operations_V1_OperationError: Sendable {
@@ -415,7 +424,7 @@ nonisolated extension Loams_Operations_V1_Progress: SwiftProtobuf.Message, Swift
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularDoubleField(value: &self.fraction) }()
+      case 1: try { try decoder.decodeSingularDoubleField(value: &self._fraction) }()
       case 2: try { try decoder.decodeSingularUInt64Field(value: &self.done) }()
       case 3: try { try decoder.decodeSingularUInt64Field(value: &self.total) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.message) }()
@@ -425,9 +434,13 @@ nonisolated extension Loams_Operations_V1_Progress: SwiftProtobuf.Message, Swift
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if self.fraction.bitPattern != 0 {
-      try visitor.visitSingularDoubleField(value: self.fraction, fieldNumber: 1)
-    }
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._fraction {
+      try visitor.visitSingularDoubleField(value: v, fieldNumber: 1)
+    } }()
     if self.done != 0 {
       try visitor.visitSingularUInt64Field(value: self.done, fieldNumber: 2)
     }
@@ -441,7 +454,7 @@ nonisolated extension Loams_Operations_V1_Progress: SwiftProtobuf.Message, Swift
   }
 
   public static func ==(lhs: Loams_Operations_V1_Progress, rhs: Loams_Operations_V1_Progress) -> Bool {
-    if lhs.fraction != rhs.fraction {return false}
+    if lhs._fraction != rhs._fraction {return false}
     if lhs.done != rhs.done {return false}
     if lhs.total != rhs.total {return false}
     if lhs.message != rhs.message {return false}

@@ -35,8 +35,8 @@ enum OperationState {
 }
 
 message Progress {
-  // 0.0 to 1.0; unset when unknown.
-  double fraction = 1;
+  // 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
+  optional double fraction = 1;
   uint64 done = 2;
   uint64 total = 3;
   string message = 4;

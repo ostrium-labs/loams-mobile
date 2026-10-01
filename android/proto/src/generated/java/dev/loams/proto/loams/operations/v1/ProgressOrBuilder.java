@@ -12,10 +12,19 @@ public interface ProgressOrBuilder extends
 
   /**
    * <pre>
-   * 0.0 to 1.0; unset when unknown.
+   * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
    * </pre>
    *
-   * <code>double fraction = 1 [json_name = "fraction"];</code>
+   * <code>optional double fraction = 1 [json_name = "fraction"];</code>
+   * @return Whether the fraction field is set.
+   */
+  boolean hasFraction();
+  /**
+   * <pre>
+   * 0.0 to 1.0; absent when unknown (show an indeterminate indicator).
+   * </pre>
+   *
+   * <code>optional double fraction = 1 [json_name = "fraction"];</code>
    * @return The fraction.
    */
   double getFraction();
