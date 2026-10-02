@@ -29,6 +29,8 @@ public struct WatchState<Item: Sendable>: Sendable {
     }
 
     public mutating func apply(_ event: WatchEvent<Item>, at now: Date) {
+        // A local copy: closures over self.idOf while mutating self.items would overlap.
+        let idOf = self.idOf
         lastMessageAt = now
         cursor = event.cursor
         switch event {
