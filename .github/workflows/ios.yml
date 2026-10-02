@@ -35,3 +35,55 @@ jobs:
         with:
           persist-credentials: false
       - run: swift test --package-path ios/Packages/LoamsCore
+
+  app:
+    # macOS minutes are expensive on a private repository: only after the Linux job passes.
+    name: build and test on the iOS simulator
+    needs: core-linux
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Xcode
+        run: xcodebuild -version && swift --version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Swift package tests (macOS host)
+        run: |
+          swift test --package-path ios/Packages/LoamsCore
+          swift test --package-path ios/Packages/LoamsData
+      - name: Generate the Xcode project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Pick an iPhone simulator
+        id: sim
+        run: |
+          udid=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          runtimes = sorted((k for k in devices if "iOS" in k), reverse=True)
+          print(next(d["udid"] for k in runtimes for d in devices[k] if d["name"].startswith("iPhone")))
+          ')
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+      - name: xcodebuild build test (unsigned, simulator)
+        run: |
+          if ! xcodebuild -project ios/Loams.xcodeproj -scheme Loams \
+            -destination "id=${{ steps.sim.outputs.udid }}" -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO -skipPackagePluginValidation \
+            build test > xcodebuild.log 2>&1; then
+            grep -E 'error:|failed|FAILED' xcodebuild.log | head -80
+            tail -60 xcodebuild.log
+            exit 1
+          fi
+          grep -E 'Test Case .*(passed|failed)|Executed|\*\* (BUILD|TEST)' xcodebuild.log | tail -40
+      - name: upload the build log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          retention-days: 7
+  # TODO(Q420): signing (App Store distribution identity, provisioning profiles for the app and
+  # the extension) and TestFlight upload, once the Apple Developer Program membership exists.
