@@ -83,7 +83,10 @@ targets:
     dependencies:
       - target: Loams
       - package: LoamsCore
+      - package: LoamsProto
       - package: LoamsData
+      - package: swift-protobuf
+        product: SwiftProtobuf
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
