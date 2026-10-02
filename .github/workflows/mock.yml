@@ -1,0 +1,60 @@
+name: mock
+
+on:
+  pull_request:
+    paths:
+      - mock/**
+      - conformance/fixtures/**
+      - .github/workflows/mock.yml
+  push:
+    branches: [main]
+    paths:
+      - mock/**
+      - conformance/fixtures/**
+      - .github/workflows/mock.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: vet, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: mock
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: mock/go.mod
+          cache-dependency-path: mock/go.sum
+      - name: gofmt
+        run: test -z "$(gofmt -l cmd internal)" || { gofmt -l cmd internal; exit 1; }
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+      - name: fixtures are reproducible in shape
+        run: |
+          go run ./cmd/fixtures
+          # HPKE sealing is randomized, so the bytes change; check the fixture still opens.
+          go test -count=1 -run 'Fixture|Golden' ./internal/server/
+          git checkout -- ../conformance/fixtures/push/sealed.json
+      - name: build binaries
+        run: |
+          for target in linux/amd64 windows/amd64 darwin/arm64; do
+            GOOS=${target%/*} GOARCH=${target#*/} CGO_ENABLED=0 \
+              go build -trimpath -ldflags=-s -o "bin/loams-mock-${target%/*}-${target#*/}$([[ $target == windows/* ]] && echo .exe)" ./cmd/loams-mock
+          done
+          ls -l bin
+      - uses: actions/upload-artifact@v7
+        with:
+          name: loams-mock
+          path: mock/bin/
+          retention-days: 30
