@@ -1,0 +1,51 @@
+name: protos
+
+on:
+  pull_request:
+    paths:
+      - proto/**
+      - buf.yaml
+      - buf.gen.*.yaml
+      - conformance/proto-ref.lock
+      - scripts/*.sh
+      - android/proto/src/generated/**
+      - ios/Packages/LoamsProto/Sources/LoamsProto/Generated/**
+      - mock/gen/**
+      - .github/workflows/protos.yml
+  push:
+    branches: [main]
+    paths:
+      - proto/**
+      - buf.yaml
+      - buf.gen.*.yaml
+      - conformance/proto-ref.lock
+      - scripts/*.sh
+      - android/proto/src/generated/**
+      - ios/Packages/LoamsProto/Sources/LoamsProto/Generated/**
+      - mock/gen/**
+      - .github/workflows/protos.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drift:
+    name: lint, lock and generated-code drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: bufbuild/buf-action@v1
+        with:
+          version: 1.73.0
+          setup_only: true
+      # Remote plugins run on buf.build without a token. That is rate-limited;
+      # generate.sh retries with back-off. No secret is used (an optional
+      # BUF_TOKEN would lift the limit).
+      - run: scripts/check-drift.sh
