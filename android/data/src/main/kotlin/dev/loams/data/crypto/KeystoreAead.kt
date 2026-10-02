@@ -13,7 +13,7 @@ import javax.crypto.spec.GCMParameterSpec
  * the push HPKE private key at rest. Output is iv (12) || ciphertext+tag.
  */
 class KeystoreAead(private val alias: String) {
-    private val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+    private val keyStore by lazy { KeyStore.getInstance("AndroidKeyStore").apply { load(null) } }
 
     private fun key(): SecretKey {
         (keyStore.getEntry(alias, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }

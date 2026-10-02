@@ -24,7 +24,8 @@ import org.robolectric.annotation.Config
 
 /** The approvals inbox on the JVM through Robolectric: list, detail, typed confirmation. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+// A plain Application: the real one opens the Android Keystore, which Robolectric lacks.
+@Config(sdk = [35], application = android.app.Application::class)
 class ApprovalsScreenTest {
     @get:Rule val compose = createComposeRule()
 

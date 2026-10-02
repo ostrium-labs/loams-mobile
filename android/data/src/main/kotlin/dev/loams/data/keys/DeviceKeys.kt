@@ -19,7 +19,7 @@ import java.security.spec.ECGenParameterSpec
  */
 class DeviceKeys(context: Context) {
     private val strongBox = context.packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
-    private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+    private val keyStore: KeyStore by lazy { KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) } }
 
     /** Creates the key if needed and returns its public half. */
     fun ensure(policy: KeyPolicy): ECPublicKey {
