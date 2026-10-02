@@ -14,7 +14,7 @@ class PushKeys(context: Context) {
     private val aead = KeystoreAead("loams-push-keys")
 
     fun ensure(instanceId: String): ByteArray {
-        privateKey(instanceId)?.let { return com.google.crypto.tink.subtle.X25519.publicFromPrivate(it) }
+        privateKey(instanceId)?.let { return PushKeyPair.publicFromPrivate(it) }
         val kp = PushKeyPair.generate()
         prefs.edit().putString(instanceId, Base64.encodeToString(aead.encrypt(kp.privateKey), Base64.NO_WRAP)).apply()
         return kp.publicKey

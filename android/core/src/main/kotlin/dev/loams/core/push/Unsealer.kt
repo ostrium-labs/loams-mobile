@@ -60,6 +60,8 @@ object Unsealer {
 /** A raw X25519 key pair for push sealing (32-byte keys). */
 class PushKeyPair(val publicKey: ByteArray, val privateKey: ByteArray) {
     companion object {
+        fun publicFromPrivate(privateKey: ByteArray): ByteArray = X25519.publicFromPrivate(privateKey)
+
         fun generate(): PushKeyPair {
             val priv = X25519.generatePrivateKey()
             return PushKeyPair(X25519.publicFromPrivate(priv), priv)
