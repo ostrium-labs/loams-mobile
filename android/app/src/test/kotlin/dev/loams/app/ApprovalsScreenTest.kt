@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import dev.loams.app.backend.DemoBackend
 import dev.loams.app.ui.approvals.ApprovalsContent
@@ -51,8 +52,8 @@ class ApprovalsScreenTest {
         compose.onNodeWithTag("detail-summary").assertIsDisplayed()
         compose.onNodeWithTag("approve-button").assertIsNotEnabled()
         compose.onNodeWithTag("reject-button").assertIsNotEnabled() // no reason yet
-        compose.onNodeWithTag("confirm-field").performTextInput("logs-2026")
-        compose.onNodeWithTag("approve-button").assertIsEnabled().performClick()
+        compose.onNodeWithTag("confirm-field").performScrollTo().performTextInput("logs-2026")
+        compose.onNodeWithTag("approve-button").performScrollTo().assertIsEnabled().performClick()
         assertEquals("apr_drop_logs" to Decision.APPROVE, decided)
     }
 
