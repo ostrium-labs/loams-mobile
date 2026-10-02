@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import LoamsCore
 import Security
 
 /// Instance identity: the id must match and the JWKS must hold the pinned key thumbprint, even
