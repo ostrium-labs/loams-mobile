@@ -1,0 +1,37 @@
+name: ios
+
+on:
+  pull_request:
+    paths:
+      - ios/**
+      - conformance/**
+      - proto/**
+      - .github/workflows/ios.yml
+  push:
+    branches: [main]
+    paths:
+      - ios/**
+      - conformance/**
+      - proto/**
+      - .github/workflows/ios.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-linux:
+    # LoamsCore builds on Linux with swift-crypto (AP3 Ruling 6): the shared golden fixtures run
+    # here cheaply, before the slower macOS job.
+    name: LoamsCore on Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container: swift:6.3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: swift test --package-path ios/Packages/LoamsCore
