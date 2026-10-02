@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "dev.loams.data"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         minSdk = 29
     }

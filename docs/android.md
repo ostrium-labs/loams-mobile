@@ -28,7 +28,7 @@ The JVM modules hold everything that can be tested without a device, so `./gradl
 | E6 | JUnit 4 rather than JUnit 5 | Robolectric and the Compose test rule run on JUnit 4 |
 | E7 | The Compose UI test runs on Robolectric in `test`, not as an instrumented `androidTest` | It runs in `./gradlew test` and in CI without an emulator |
 | E8 | QR scanning with ZXing Android Embedded | Works without Google Play services, which the planned `unifiedpush` flavor needs |
-| E9 | AGP 9.4.1 with built-in Kotlin, Kotlin 2.4.20, Gradle 9.8.0, compile and target SDK 36, minSdk 29 | Current stable on 2026-10-02 |
+| E9 | AGP 9.4.1 with built-in Kotlin, Kotlin 2.4.20, Gradle 9.8.0, compileSdk 37 (AndroidX core 1.19 needs it), targetSdk 36, minSdk 29 | Current stable on 2026-10-02 |
 
 ## Stubbed or not yet built
 
