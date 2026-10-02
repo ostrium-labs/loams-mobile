@@ -245,6 +245,11 @@ func (s *Server) settleOperation(a *approvalsv1.Approval) {
 		return
 	}
 	_, _ = s.operations.Update(a.OperationId, func(cur *operationsv1.Operation) (*operationsv1.Operation, error) {
+		// Only an operation still waiting on this approval moves; a canceled
+		// one never starts again.
+		if cur.State != operationsv1.OperationState_OPERATION_STATE_AWAITING_APPROVAL || cur.ApprovalId != a.Id {
+			return nil, errors.New("operation is not waiting on this approval")
+		}
 		next := proto.Clone(cur).(*operationsv1.Operation)
 		next.State = state
 		next.ApprovalId = ""

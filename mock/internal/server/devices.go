@@ -151,6 +151,7 @@ func (d deviceService) RegisterPushTarget(ctx context.Context, req *connect.Requ
 	for id, t := range d.s.pushTargets {
 		if t.deviceID == c.device.proto.Id && t.req.TokenOrEndpoint == m.TokenOrEndpoint {
 			delete(d.s.pushTargets, id)
+			dropRef(c.device.proto, id)
 		}
 	}
 	d.s.nextID++
@@ -174,7 +175,19 @@ func (d deviceService) UnregisterPushTarget(ctx context.Context, req *connect.Re
 		return nil, fail(connect.CodeNotFound, "push_target_unknown", "no such push target")
 	}
 	delete(d.s.pushTargets, t.id)
+	dropRef(c.device.proto, t.id)
 	return connect.NewResponse(&devicesv1.UnregisterPushTargetResponse{}), nil
+}
+
+// dropRef removes a push target from the device record ListDevices returns.
+func dropRef(dev *devicesv1.Device, id string) {
+	refs := dev.PushTargets[:0]
+	for _, r := range dev.PushTargets {
+		if r.Id != id {
+			refs = append(refs, r)
+		}
+	}
+	dev.PushTargets = refs
 }
 
 func (d deviceService) GetNotificationPreferences(context.Context, *connect.Request[devicesv1.GetNotificationPreferencesRequest]) (*connect.Response[devicesv1.GetNotificationPreferencesResponse], error) {

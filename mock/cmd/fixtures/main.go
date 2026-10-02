@@ -1,6 +1,10 @@
 // Command fixtures writes conformance/fixtures/push/sealed.json: a
 // notification sealed by the mock's HPKE code to a fixed test key, which the
-// Android (Tink) and iOS (CryptoKit) unsealers must open. Run from mock/:
+// Android (Tink) and iOS (CryptoKit) unsealers must open.
+//
+// HPKE encapsulation is randomized, so `sealed` (and only `sealed`) changes on
+// every run; the key, ids and plaintext are fixed. Commit a regenerated file
+// only when the plaintext or the scheme changes. Run from mock/:
 //
 //	go run ./cmd/fixtures
 package main
@@ -48,7 +52,7 @@ func main() {
 	out := map[string]any{
 		"about": "HPKE base mode, DHKEM(X25519, HKDF-SHA256), HKDF-SHA256, ChaCha20-Poly1305 (design §37 §7.4). " +
 			"info = \"loams-push-v1\" 0x00 instance_id 0x00 notification_id, empty AAD; sealed = enc (32 bytes) || ciphertext. " +
-			"The plaintext is a serialized loams.notifications.v1.Notification. Keys are test-only. Regenerate with `go run ./cmd/fixtures` in mock/.",
+			"The plaintext is a serialized loams.notifications.v1.Notification. Keys are test-only. Regenerate with `go run ./cmd/fixtures` in mock/; `sealed` differs on every run because HPKE encapsulation is randomized.",
 		"recipient_private_key": b64(priv),
 		"recipient_public_key":  b64(pub),
 		"instance_id":           instanceID,

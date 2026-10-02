@@ -577,3 +577,60 @@ func readFixture(t *testing.T, name string, v any) {
 		t.Fatal(fmt.Errorf("%s: %w", name, err))
 	}
 }
+
+func TestResumeRemovesWhatWasDecidedWhileAway(t *testing.T) {
+	e := start(t)
+	st := watchApprovals(t, e, "")
+	cursor := next(t, st).Cursor
+	_ = st.Close()
+	// Decided on another device while this stream was down.
+	tok, key := e.paired()
+	claims := decision.Claims{ApprovalID: "apr_agent_reindex", Revision: 1, Decision: "approve", Iat: e.clock.now().Unix(), Jti: "away"}
+	if _, err := decide(e, tok, &approvalsv1.DecideApprovalRequest{ApprovalId: "apr_agent_reindex", Revision: 1, Decision: approvalsv1.DecisionKind_DECISION_KIND_APPROVE, DecisionProof: proof(t, key, claims)}); err != nil {
+		t.Fatal(err)
+	}
+	st2 := watchApprovals(t, e, cursor)
+	defer st2.Close()
+	if m := next(t, st2); m.GetRemove() != "apr_agent_reindex" {
+		t.Fatalf("want a remove on resume, got %v", m)
+	}
+}
+
+func TestCanceledOperationStaysCanceledAfterApproval(t *testing.T) {
+	e := start(t)
+	tok, key := e.paired()
+	ops := operationsv1connect.NewOperationsServiceClient(http.DefaultClient, e.url, bearer(tok))
+	if _, err := ops.CancelOperation(context.Background(), connect.NewRequest(&operationsv1.CancelOperationRequest{OperationId: "op_drop_logs"})); err != nil {
+		t.Fatal(err)
+	}
+	claims := decision.Claims{ApprovalID: "apr_drop_logs", Revision: 1, Decision: "approve", Iat: e.clock.now().Unix(), Jti: "c"}
+	if _, err := decide(e, tok, &approvalsv1.DecideApprovalRequest{ApprovalId: "apr_drop_logs", Revision: 1, Decision: approvalsv1.DecisionKind_DECISION_KIND_APPROVE, Reason: "x", DecisionProof: proof(t, key, claims)}); err != nil {
+		t.Fatal(err)
+	}
+	op, _ := ops.GetOperation(context.Background(), connect.NewRequest(&operationsv1.GetOperationRequest{OperationId: "op_drop_logs"}))
+	if op.Msg.Operation.State != operationsv1.OperationState_OPERATION_STATE_CANCELED {
+		t.Fatalf("state %v", op.Msg.Operation.State)
+	}
+}
+
+func TestUnregisterPushTargetLeavesNoStaleRef(t *testing.T) {
+	e := start(t)
+	tok, _ := e.paired()
+	pub, _, _ := seal.NewKeyPair()
+	dc := devicesv1connect.NewDeviceServiceClient(http.DefaultClient, e.url, bearer(tok))
+	reg := &devicesv1.RegisterPushTargetRequest{Provider: devicesv1.PushProvider_PUSH_PROVIDER_FCM, TokenOrEndpoint: "t1", AppId: "dev.loams.app", HpkePublicKey: pub}
+	_, _ = dc.RegisterPushTarget(context.Background(), connect.NewRequest(reg))
+	r2, err := dc.RegisterPushTarget(context.Background(), connect.NewRequest(reg)) // same token replaces
+	if err != nil {
+		t.Fatal(err)
+	}
+	list, _ := dc.ListDevices(context.Background(), connect.NewRequest(&devicesv1.ListDevicesRequest{}))
+	if n := len(list.Msg.Devices[0].PushTargets); n != 1 {
+		t.Fatalf("%d refs after re-registering", n)
+	}
+	_, _ = dc.UnregisterPushTarget(context.Background(), connect.NewRequest(&devicesv1.UnregisterPushTargetRequest{PushTargetId: r2.Msg.PushTargetId}))
+	list, _ = dc.ListDevices(context.Background(), connect.NewRequest(&devicesv1.ListDevicesRequest{}))
+	if n := len(list.Msg.Devices[0].PushTargets); n != 0 {
+		t.Fatalf("%d refs after unregistering", n)
+	}
+}

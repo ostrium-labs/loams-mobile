@@ -58,6 +58,10 @@ func runWatch[T any](ctx context.Context, s *Server, h *hub.Hub[T], cursor strin
 			}
 		}
 		for _, e := range sub.Replay {
+			// The client may have held this item at its cursor even if it no
+			// longer matches (or is gone): mark it, so the replay sends a
+			// remove. A redundant remove is harmless.
+			sent[e.ID] = true
 			if err := apply(e, itoa(e.Seq)); err != nil {
 				return err
 			}
