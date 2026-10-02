@@ -275,9 +275,10 @@ func (s *Server) fakeAuthentikToken(w http.ResponseWriter, r *http.Request) {
 		oauthError(w, "invalid_grant", "", "unknown code or PKCE verifier mismatch")
 		return
 	}
+	// No id_token: AppAuth would validate one (issuer, audience, nonce), and the app only needs
+	// the access token to exchange at the gateway.
 	writeJSON(w, 200, map[string]any{
 		"access_token": "mock-authentik-" + code[len("mock-authz-"):], "token_type": "Bearer", "expires_in": 300,
-		"id_token": "mock.id.token",
 	})
 }
 
