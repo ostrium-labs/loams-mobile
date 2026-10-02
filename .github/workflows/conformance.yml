@@ -1,0 +1,62 @@
+name: conformance
+
+# The Android network layer (connect-kotlin on the JVM) against the mock, end to end: pairing,
+# signed decisions reaching the open stream, drop and resume, sealed push, every RPC. The iOS
+# counterpart (LoamsConformance, AP3 Task 9) joins once macOS minutes are not metered.
+on:
+  pull_request:
+    paths:
+      - android/core/**
+      - android/proto/**
+      - android/transport/**
+      - android/conformance/**
+      - mock/**
+      - proto/**
+      - conformance/**
+      - .github/workflows/conformance.yml
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conformance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-jvm:
+    name: Android network layer against the mock
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: mock/go.mod
+          cache-dependency-path: mock/go.sum
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Start the mock
+        working-directory: mock
+        run: |
+          go build -o bin/loams-mock ./cmd/loams-mock
+          nohup bin/loams-mock -listen 127.0.0.1:8084 -public-url http://127.0.0.1:8084 -qr=false -heartbeat 2s > ../mock.log 2>&1 &
+          for _ in $(seq 1 30); do curl -sf http://127.0.0.1:8084/healthz && break; sleep 1; done
+      - name: Conformance suite
+        working-directory: android
+        env:
+          LOAMS_MOCK_URL: http://127.0.0.1:8084
+        run: ./gradlew --stacktrace :conformance:test
+      - name: Every test ran (none skipped)
+        run: |
+          grep -h -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' android/conformance/build/test-results/test/*.xml
+          ! grep -l 'skipped="[1-9]' android/conformance/build/test-results/test/*.xml
+      - name: mock log
+        if: always()
+        run: tail -50 mock.log || true

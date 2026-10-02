@@ -17,12 +17,34 @@ The design is §37 of the main repository ([`docs/design/37-desktop-and-mobile-a
 
 | Path | What |
 |---|---|
-| `android/` | Gradle (Kotlin DSL) project: `:core`, `:proto`, `:data`, `:push`, `:app`, `:conformance` |
-| `ios/` | XcodeGen `project.yml`, the `Loams` app, Swift packages `LoamsCore`, `LoamsProto`, `LoamsData` |
+| `android/` | Gradle (Kotlin DSL) project: `:core`, `:proto`, `:transport`, `:conformance` (JVM) and `:data`, `:push`, `:app` (Android); see [docs/android.md](docs/android.md) |
+| `ios/` | XcodeGen `project.yml`, the `Loams` app and its Notification Service Extension, Swift packages `LoamsCore`, `LoamsProto`, `LoamsData`; see [docs/ios.md](docs/ios.md) |
 | `mock/` | A small Connect server in Go that serves the app protos for local testing |
 | `proto/` | The protos, vendored from the main repository at the ref in `conformance/proto-ref.lock` |
 | `conformance/` | The proto ref lock and golden fixtures shared by both apps and the mock |
-| `docs/` | [Running the apps](docs/RUNNING.md), [protos and generation](docs/protos.md) |
+| `docs/` | [Running the apps](docs/RUNNING.md), [protos and generation](docs/protos.md), [releasing](docs/release.md) |
+
+## Quick start (Android, Linux or Windows)
+
+```sh
+cd mock && go run ./cmd/loams-mock          # terminal 1: the mock on 127.0.0.1:8084
+cd android && ./gradlew installDebug        # terminal 2: with an emulator running (Windows: .\gradlew.bat)
+```
+
+Then tap **Debug: pair with the local mock** in the app. Full steps, including the emulator's screen lock and push: [docs/RUNNING.md](docs/RUNNING.md).
+
+## CI
+
+| Workflow | Runs on | What |
+|---|---|---|
+| `android` | ubuntu | `./gradlew assembleDebug test lint`; uploads the debug APK |
+| `conformance` | ubuntu | the Android network layer against the mock, end to end |
+| `ios` | ubuntu, then macOS | LoamsCore on Linux; then package tests, `xcodegen generate` and `xcodebuild build test` on an iOS simulator, unsigned |
+| `mock` | ubuntu | vet, race tests, linux/windows/macOS binaries as an artifact |
+| `protos` | ubuntu | buf lint, the proto lock, regenerate-and-diff |
+| `dco` | ubuntu | every commit is signed off |
+
+No workflow uses a secret. Store releases wait for the owner actions in [docs/release.md](docs/release.md).
 
 ## Licence
 
