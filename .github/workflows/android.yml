@@ -1,0 +1,62 @@
+name: android
+
+on:
+  pull_request:
+    paths:
+      - android/**
+      - conformance/**
+      - proto/**
+      - .github/workflows/android.yml
+  push:
+    branches: [main]
+    paths:
+      - android/**
+      - conformance/**
+      - proto/**
+      - .github/workflows/android.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build, unit tests, lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      # The runner image ships the Android SDK (ANDROID_HOME); AGP installs a missing platform.
+      - uses: gradle/actions/setup-gradle@v6
+      - name: assembleDebug, unit tests (JVM and Robolectric), lint
+        run: ./gradlew --stacktrace assembleDebug test lint
+      - name: upload the debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: loams-android-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+      - name: upload reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-reports
+          path: |
+            android/**/build/reports/
+            android/**/build/test-results/
+          retention-days: 7
+  # TODO(Q420): a release job (signed AAB for Play internal testing) once the Google Play
+  # developer account and upload key exist; signing secrets go in a protected `release`
+  # environment, never in pull-request jobs.
