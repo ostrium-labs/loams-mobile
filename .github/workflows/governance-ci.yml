@@ -1,0 +1,21 @@
+name: governance CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  required:
+    name: CI required
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check patch whitespace
+        run: git diff --check HEAD^ HEAD

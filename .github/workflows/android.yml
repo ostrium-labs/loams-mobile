@@ -8,7 +8,7 @@ on:
       - proto/**
       - .github/workflows/android.yml
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - android/**
       - conformance/**

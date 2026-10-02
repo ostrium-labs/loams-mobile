@@ -11,6 +11,10 @@ Thanks for your interest. This repository holds the native phone apps; the serve
 5. **Security rules are not negotiable.** No cleartext outside the debug mock hosts, no user CAs, no backups of tokens or keys, no secret in logs, no decision without the user present. See [SECURITY.md](SECURITY.md).
 6. **Small PRs.** One focused change per PR, with what changed and why.
 
+## Pull requests
+
+Fork and branch from `dev`, and open PRs against `dev`. `main` is the release branch. Committers and maintainers merge into `dev`; maintainers merge `dev` into `main`. See [GOVERNANCE.md](GOVERNANCE.md) for the contributor ladder. Use merge commits, not squash merges.
+
 ## Running and testing
 
 See [docs/RUNNING.md](docs/RUNNING.md).
@@ -23,7 +27,7 @@ This project uses the [Developer Certificate of Origin](https://developercertifi
 git commit -s -m "android: add the pairing screen"
 ```
 
-This adds a `Signed-off-by: Your Name <you@example.com>` trailer, certifying that you wrote the change or otherwise have the right to submit it under the project's licence. To sign off commits you already made, run `git rebase --signoff main`.
+This adds a `Signed-off-by: Your Name <you@example.com>` trailer, certifying that you wrote the change or otherwise have the right to submit it under the project's licence. To sign off commits you already made, run `git rebase --signoff dev`.
 
 ## Code of Conduct
 

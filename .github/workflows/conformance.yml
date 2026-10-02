@@ -15,7 +15,7 @@ on:
       - conformance/**
       - .github/workflows/conformance.yml
   push:
-    branches: [main]
+    branches: [main, dev]
 
 permissions:
   contents: read

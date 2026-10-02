@@ -8,7 +8,7 @@ on:
       - proto/**
       - .github/workflows/ios.yml
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - ios/**
       - conformance/**
