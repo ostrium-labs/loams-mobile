@@ -19,15 +19,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
 
 jobs:
   core-linux:
     # LoamsCore builds on Linux with swift-crypto (AP3 Ruling 6): the shared golden fixtures run
     # here cheaply, before the slower macOS job.
     name: LoamsCore on Linux
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.base_ref == 'main' || github.ref == 'refs/heads/main') && (vars.RUNNER_MAIN || 'blacksmith-4vcpu-ubuntu-2404') || (vars.RUNNER_DEV_HEAVY || 'depot-ubuntu-24.04-4') }}
     timeout-minutes: 20
     container: swift:6.3
     steps:
