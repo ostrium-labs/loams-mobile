@@ -96,7 +96,8 @@ class TokenEndpoint(private val issuer: String, http: OkHttpClient) {
             } else {
                 TokenResult.Refused(
                     obj.str("error") ?: "http_${resp.code}",
-                    Reason.fromWire(obj.str("loams_reason") ?: obj.str("error_description")),
+                    // Only the machine field; error_description is free text.
+                    Reason.fromWire(obj.str("loams_reason")),
                     obj.str("error_description"),
                 )
             }
