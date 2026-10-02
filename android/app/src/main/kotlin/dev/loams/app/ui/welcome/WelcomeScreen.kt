@@ -64,9 +64,12 @@ fun WelcomeScreen(container: AppContainer) {
     val context = LocalContext.current
     val signIn = remember { AuthentikSignIn(context) }
     DisposableEffect(signIn) { onDispose { signIn.dispose() } }
-    var pending by remember { mutableStateOf<AuthentikSignIn.Pending?>(null) }
     val browser = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        val p = pending ?: return@rememberLauncherForActivityResult
+        val p = vm.pendingSignIn ?: run {
+            vm.say("Sign-in expired while the browser was open; try again.")
+            return@rememberLauncherForActivityResult
+        }
+        vm.pendingSignIn = null
         val data = result.data
         if (result.resultCode != Activity.RESULT_OK && data == null) {
             vm.say("Sign-in was cancelled.")
@@ -132,7 +135,7 @@ fun WelcomeScreen(container: AppContainer) {
                         scope.launch {
                             runCatching { signIn.start(issuer) }
                                 .onSuccess { (p, intent) ->
-                                    pending = p
+                                    vm.pendingSignIn = p
                                     browser.launch(intent)
                                 }
                                 .onFailure { vm.say(it.message ?: "Could not start sign-in.") }

@@ -35,6 +35,8 @@ import java.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 sealed interface SessionState {
     data object Loading : SessionState
@@ -83,18 +85,51 @@ class SessionManager(
             return
         }
         val result = runCatching { TokenEndpoint(record.issuer, Http.client(record.trust)).refresh(refresh) }.getOrNull()
-        when (result) {
-            is TokenResult.Ok -> {
+        when {
+            result is TokenResult.Ok -> {
                 store.saveRefreshToken(result.tokens.refreshToken)
                 activate(record, result.tokens)
             }
-            is TokenResult.Refused -> signOut() // revoked, or the refresh token was reused
-            null -> {
-                // Offline: show the instance read-only; streams retry and decisions stay disabled.
-                _state.value = SessionState.Active(backendFor(record), record)
+            // Revoked, or the refresh token was reused: the pairing is gone.
+            result is TokenResult.Refused && isDefinitive(result) -> signOut()
+            // Offline or a gateway hiccup: show the instance read-only. The streams ask for a
+            // token through refreshAccess() when the network is back.
+            else -> _state.value = SessionState.Active(backendFor(record), record)
+        }
+    }
+
+    enum class Refresh { REFRESHED, REVOKED, UNAVAILABLE }
+
+    private val refreshLock = Mutex()
+
+    /**
+     * Gets a new access token with the stored refresh token (rotating it). Called when a call
+     * answers UNAUTHENTICATED: after the access token expired, or after an offline start.
+     * Signs out only on a definitive refusal; a gateway error is UNAVAILABLE and retried.
+     */
+    suspend fun refreshAccess(failedToken: String?): Refresh = refreshLock.withLock {
+        // Another caller already refreshed while this one waited.
+        if (accessToken != null && accessToken != failedToken) return@withLock Refresh.REFRESHED
+        val record = store.current() ?: return@withLock Refresh.REVOKED
+        val refresh = store.refreshToken() ?: return@withLock Refresh.REVOKED
+        val result = runCatching { TokenEndpoint(record.issuer, Http.client(record.trust)).refresh(refresh) }.getOrNull()
+            ?: return@withLock Refresh.UNAVAILABLE
+        when (result) {
+            is TokenResult.Ok -> {
+                store.saveRefreshToken(result.tokens.refreshToken)
+                accessToken = result.tokens.accessToken
+                Refresh.REFRESHED
+            }
+            is TokenResult.Refused -> if (isDefinitive(result)) {
+                signOut()
+                Refresh.REVOKED
+            } else {
+                Refresh.UNAVAILABLE
             }
         }
     }
+
+    private fun isDefinitive(r: TokenResult.Refused) = r.error == "invalid_grant" || r.reason == Reason.DEVICE_REVOKED
 
     fun startDemo() {
         _state.value = SessionState.Active(DemoBackend(), null)
@@ -199,7 +234,13 @@ class SessionManager(
     }
 
     private fun backendFor(record: SessionRecord): Backend =
-        RemoteBackend(Clients(record.issuer, Http.client(record.trust), tokenSource), record.instanceId, record.deviceId, record.trust)
+        RemoteBackend(Clients(record.issuer, Http.client(record.trust), tokenSource), record.instanceId, record.deviceId, record.trust) {
+            when (refreshAccess(accessToken)) {
+                Refresh.REFRESHED -> true
+                Refresh.REVOKED -> false
+                Refresh.UNAVAILABLE -> throw java.io.IOException("the token endpoint is unavailable")
+            }
+        }
 
     private fun keyOrNetworkMessage(e: Exception): String = when {
         e is javax.net.ssl.SSLHandshakeException -> "This server's identity changed or its certificate is not trusted. Nothing was sent."

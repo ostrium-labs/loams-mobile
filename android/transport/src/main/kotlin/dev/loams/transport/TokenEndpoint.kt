@@ -40,7 +40,8 @@ sealed interface TokenResult {
  *
  * TODO(auth plan, Q438): every call carries a DPoP proof (RFC 9449) from dpop-<instance>.
  */
-class TokenEndpoint(private val issuer: String, private val http: OkHttpClient) {
+class TokenEndpoint(private val issuer: String, http: OkHttpClient) {
+    private val http = Http.withDeadline(http)
     private val json = Json { ignoreUnknownKeys = true }
 
     /** Redeems a pairing with exactly one of [code] (from the QR) or [userCode] (typed). */

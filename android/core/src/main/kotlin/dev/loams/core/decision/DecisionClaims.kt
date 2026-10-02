@@ -72,23 +72,39 @@ object Jws {
  * fixed 64-byte r||s form that JWS ES256 requires (RFC 7518 §3.4).
  */
 object EcdsaSignatures {
+    /** @throws IllegalArgumentException for anything that is not a well-formed DER ECDSA signature. */
     fun derToRaw(der: ByteArray, size: Int = 32): ByteArray {
-        var i = 0
-        require(der[i++].toInt() == 0x30) { "not a DER sequence" }
-        val len = der[i++].toInt() and 0xff
-        if (len and 0x80 != 0) i += len and 0x7f // long-form length: skip its bytes
-        val r = readInt(der, i).also { i = it.second }.first
-        val s = readInt(der, i).first
-        val out = ByteArrayOutputStream(size * 2)
-        out.write(fixed(r, size))
-        out.write(fixed(s, size))
-        return out.toByteArray()
+        try {
+            var i = 0
+            require(der.size >= 8 && der[i++].toInt() == 0x30) { "not a DER sequence" }
+            val first = der[i++].toInt() and 0xff
+            val bodyLength = if (first and 0x80 == 0) {
+                first
+            } else {
+                val n = first and 0x7f
+                require(n in 1..2) { "unsupported DER length" }
+                var len = 0
+                repeat(n) { len = (len shl 8) or (der[i++].toInt() and 0xff) }
+                len
+            }
+            require(i + bodyLength == der.size) { "DER length does not match the input" }
+            val r = readInt(der, i).also { i = it.second }.first
+            val s = readInt(der, i).also { i = it.second }.first
+            require(i == der.size) { "trailing bytes after the DER signature" }
+            val out = ByteArrayOutputStream(size * 2)
+            out.write(fixed(r, size))
+            out.write(fixed(s, size))
+            return out.toByteArray()
+        } catch (e: IndexOutOfBoundsException) {
+            throw IllegalArgumentException("truncated DER signature", e)
+        }
     }
 
     private fun readInt(der: ByteArray, start: Int): Pair<ByteArray, Int> {
         var i = start
         require(der[i++].toInt() == 0x02) { "not a DER integer" }
         val len = der[i++].toInt() and 0xff
+        require(len in 1..(der.size - i)) { "DER integer runs past the input" }
         return der.copyOfRange(i, i + len) to i + len
     }
 

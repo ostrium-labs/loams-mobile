@@ -20,4 +20,7 @@ object Http {
             .pingInterval(20, TimeUnit.SECONDS)
             .trust(trust)
             .build()
+
+    /** For plain request/response calls (token endpoint, JWKS): never wait forever. */
+    fun withDeadline(http: OkHttpClient): OkHttpClient = http.newBuilder().callTimeout(15, TimeUnit.SECONDS).build()
 }

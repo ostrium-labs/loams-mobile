@@ -55,4 +55,21 @@ class DecisionClaimsTest {
         }
         assertEquals(3, Jws.compact(input, ByteArray(64)).split('.').size)
     }
+
+    @Test
+    fun malformed_der_is_an_illegal_argument() {
+        val good = Signature.getInstance("SHA256withECDSA").run {
+            initSign(KeyPairGenerator.getInstance("EC").apply { initialize(ECGenParameterSpec("secp256r1")) }.generateKeyPair().private)
+            update(byteArrayOf(1))
+            sign()
+        }
+        for (bad in listOf(ByteArray(0), good.copyOf(good.size - 3), byteArrayOf(0x30, 0x81.toByte()), good + byteArrayOf(0))) {
+            try {
+                EcdsaSignatures.derToRaw(bad)
+                throw AssertionError("accepted ${bad.size} bytes")
+            } catch (e: IllegalArgumentException) {
+                // expected
+            }
+        }
+    }
 }

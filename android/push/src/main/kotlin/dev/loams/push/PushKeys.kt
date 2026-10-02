@@ -13,10 +13,12 @@ class PushKeys(context: Context) {
     private val prefs = context.getSharedPreferences("push-keys", Context.MODE_PRIVATE)
     private val aead = KeystoreAead("loams-push-keys")
 
+    /** Synchronized and committed synchronously: the public half goes to the server right after. */
+    @Synchronized
     fun ensure(instanceId: String): ByteArray {
         privateKey(instanceId)?.let { return PushKeyPair.publicFromPrivate(it) }
         val kp = PushKeyPair.generate()
-        prefs.edit().putString(instanceId, Base64.encodeToString(aead.encrypt(kp.privateKey), Base64.NO_WRAP)).apply()
+        prefs.edit().putString(instanceId, Base64.encodeToString(aead.encrypt(kp.privateKey), Base64.NO_WRAP)).commit()
         return kp.publicKey
     }
 

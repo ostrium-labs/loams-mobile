@@ -56,8 +56,9 @@ fun StatusScreen(vm: StatusViewModel) {
                     Column(Modifier.padding(16.dp)) {
                         Text("Instance", style = MaterialTheme.typography.titleMedium)
                         val i = instance
+                        error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                         if (i == null) {
-                            Text(error ?: "Loading…", style = MaterialTheme.typography.bodySmall)
+                            if (error == null) Text("Loading…", style = MaterialTheme.typography.bodySmall)
                         } else {
                             Text(i.issuer, style = MaterialTheme.typography.bodyMedium)
                             Text("${i.edition} ${i.serverVersion} · ${i.instanceId}", style = MaterialTheme.typography.bodySmall)

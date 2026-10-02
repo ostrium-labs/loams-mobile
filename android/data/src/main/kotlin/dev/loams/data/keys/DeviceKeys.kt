@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.security.keystore.StrongBoxUnavailableException
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.PrivateKey
@@ -24,9 +23,13 @@ class DeviceKeys(context: Context) {
     /** Creates the key if needed and returns its public half. */
     fun ensure(policy: KeyPolicy): ECPublicKey {
         (keyStore.getCertificate(policy.alias)?.publicKey as? ECPublicKey)?.let { return it }
+        if (!strongBox) return generate(policy, false)
         return try {
-            generate(policy, strongBox)
-        } catch (e: StrongBoxUnavailableException) {
+            generate(policy, true)
+        } catch (e: Exception) {
+            // Some devices advertise StrongBox but refuse a given spec (StrongBoxUnavailable,
+            // ProviderException, InvalidAlgorithmParameter): fall back to the TEE, which
+            // rethrows if the cause was something else, such as no secure lock screen.
             generate(policy, false)
         }
     }

@@ -37,7 +37,7 @@ object InstanceCheck {
     }
 
     suspend fun fetchThumbprints(http: OkHttpClient, jwksUri: String): Set<String> = withContext(Dispatchers.IO) {
-        http.newCall(Request.Builder().url(jwksUri).build()).execute().use { resp ->
+        Http.withDeadline(http).newCall(Request.Builder().url(jwksUri).build()).execute().use { resp ->
             if (!resp.isSuccessful) throw IOException("JWKS answered ${resp.code}")
             val keys = Json.parseToJsonElement(resp.body.string()).jsonObject["keys"]?.jsonArray.orEmpty()
             keys.mapNotNull { k ->

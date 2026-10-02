@@ -2,7 +2,9 @@ package dev.loams.app.ui.welcome
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.loams.app.session.AuthentikSignIn
 import dev.loams.app.session.PairResult
+import kotlinx.coroutines.CancellationException
 import dev.loams.app.session.SessionManager
 import dev.loams.transport.Http
 import dev.loams.transport.TrustPolicy
@@ -30,10 +32,23 @@ class WelcomeViewModel(private val session: SessionManager) : ViewModel() {
         _message.value = text
     }
 
+    /** The browser sign-in in flight; kept here so it survives activity recreation. */
+    var pendingSignIn: AuthentikSignIn.Pending? = null
+
     private fun run(block: suspend () -> PairResult) {
         viewModelScope.launch {
             _busy.value = true
-            when (val r = try { block() } finally { _busy.value = false }) {
+            val result = try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Never crash on a network error; say what happened.
+                PairResult.Failed("Could not reach the server: ${e.message ?: e.javaClass.simpleName}")
+            } finally {
+                _busy.value = false
+            }
+            when (val r = result) {
                 PairResult.Paired -> _message.value = null
                 is PairResult.Failed -> _message.value = r.message
                 is PairResult.ConfirmFingerprint -> _confirm.value = r

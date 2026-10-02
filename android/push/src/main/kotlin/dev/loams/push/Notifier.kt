@@ -33,10 +33,14 @@ class Notifier(private val context: Context, private val launchIntent: () -> Int
 
     fun show(shown: Shown, channel: String) {
         if (!canPost()) return
+        // A data URI per notification keeps PendingIntents distinct (request codes can collide),
+        // so Review always opens the approval it was posted for.
         val open = PendingIntent.getActivity(
             context,
-            shown.notificationId.hashCode(),
-            launchIntent().putExtra(EXTRA_APPROVAL_ID, shown.approvalId),
+            0,
+            launchIntent()
+                .setData(android.net.Uri.fromParts("loams-notification", shown.notificationId ?: "generic", null))
+                .putExtra(EXTRA_APPROVAL_ID, shown.approvalId),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val builder = NotificationCompat.Builder(context, channel)

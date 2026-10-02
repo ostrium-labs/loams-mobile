@@ -26,7 +26,11 @@ import dev.loams.transport.watchApprovals
 import dev.loams.transport.watchOperations
 import java.io.IOException
 import java.util.UUID
+import dev.loams.core.watch.WatchEvent
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 
 /** A paired instance over Connect. */
 class RemoteBackend(
@@ -34,6 +38,8 @@ class RemoteBackend(
     override val instanceId: String,
     private val deviceId: String,
     private val trust: TrustPolicy,
+    /** Gets a fresh access token: true to retry, false when the session is gone; may throw. */
+    private val reauthenticate: suspend () -> Boolean = { false },
 ) : Backend {
     override val isDemo = false
 
@@ -42,8 +48,22 @@ class RemoteBackend(
 
     // A revoked device or a lost session will not heal by retrying.
     private val fatal: (Throwable) -> Boolean = { it is ConnectException && it.code == Code.UNAUTHENTICATED }
-    private val approvalWatch = ResumingWatch(approvalState, { clients.watchApprovals(it) }, isFatal = fatal)
-    private val operationWatch = ResumingWatch(operationState, { clients.watchOperations(it) }, isFatal = fatal)
+    private val approvalWatch = ResumingWatch(approvalState, withReauth { clients.watchApprovals(it) }, isFatal = fatal)
+    private val operationWatch = ResumingWatch(operationState, withReauth { clients.watchOperations(it) }, isFatal = fatal)
+
+    /** Signed in again after UNAUTHENTICATED: a retryable failure, so the watch reconnects. */
+    private class Reauthenticated : Exception("signed in again")
+
+    private fun <T> withReauth(open: (String?) -> Flow<WatchEvent<T>>): (String?) -> Flow<WatchEvent<T>> = { cursor ->
+        flow {
+            try {
+                emitAll(open(cursor))
+            } catch (e: ConnectException) {
+                if (e.code == Code.UNAUTHENTICATED && e.reason() != Reason.DEVICE_REVOKED && reauthenticate()) throw Reauthenticated()
+                throw e
+            }
+        }
+    }
 
     override val approvals: StateFlow<List<Approval>> = approvalState.items
     override val approvalsStatus: StateFlow<StreamStatus> = approvalWatch.status
