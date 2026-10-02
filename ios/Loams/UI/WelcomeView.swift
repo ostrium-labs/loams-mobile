@@ -1,5 +1,6 @@
 import LoamsCore
 import SwiftUI
+import Vision
 import VisionKit
 
 struct WelcomeView: View {

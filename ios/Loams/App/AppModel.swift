@@ -312,7 +312,8 @@ final class AppModel {
 
     func sendTestNotification() async {
         do {
-            message = "Test notification \(try await backend?.sendTestNotification() ?? "") sent."
+            let id = try await backend?.sendTestNotification() ?? ""
+            message = "Test notification \(id) sent."
         } catch {
             message = "Not sent: \(error.localizedDescription)"
         }

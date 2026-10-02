@@ -7,6 +7,9 @@ import UIKit
 /// (which does no PKCE of its own). Returns Authentik's access token.
 @MainActor
 final class WebAuth: NSObject, ASWebAuthenticationPresentationContextProviding {
+    /// Held for the duration of a sign-in: the system cancels a session that is deallocated.
+    private var session: ASWebAuthenticationSession?
+
     struct Failure: Error, LocalizedError {
         let message: String
         var errorDescription: String? { message }
@@ -39,8 +42,10 @@ final class WebAuth: NSObject, ASWebAuthenticationPresentationContextProviding {
             // Keep Authentik's session cookie between sign-ins (AP3 Task 4).
             session.prefersEphemeralWebBrowserSession = false
             session.presentationContextProvider = self
+            self.session = session
             session.start()
         }
+        session = nil
         let items = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems ?? []
         guard items.first(where: { $0.name == "state" })?.value == state, let code = items.first(where: { $0.name == "code" })?.value else {
             throw Failure(message: "The sign-in answer did not match this request.")
