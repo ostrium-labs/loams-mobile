@@ -35,6 +35,13 @@ class TokenEndpointTest {
     }
 
     @Test
+    fun error_description_is_never_read_as_a_reason() = runTest {
+        server.enqueue(MockResponse.Builder().code(400).body("""{"error":"invalid_grant","error_description":"pairing_used"}""").build())
+        val r = endpoint().redeemPairing("CODE", null, DeviceRegistration("Pixel", "{}")) as TokenResult.Refused
+        assertEquals(Reason.UNKNOWN, r.reason)
+    }
+
+    @Test
     fun tokens_are_redacted_in_toString() {
         val t = DeviceTokens("secret-access", "secret-refresh", 1, "dev")
         assertTrue(!t.toString().contains("secret"))
