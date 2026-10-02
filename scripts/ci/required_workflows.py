@@ -43,7 +43,10 @@ def matching_glob(pattern: str, path: str) -> bool:
 def _values(value: str, following: list[str]) -> list[str]:
     value = value.strip()
     if value.startswith("["):
-        return list(ast.literal_eval(value))
+        if not value.endswith("]"):
+            raise ValueError(f"Malformed workflow list: {value}")
+        items = (part.strip() for part in value[1:-1].split(","))
+        return [ast.literal_eval(item) if item[0] in "\"'" else item for item in items if item]
     if value:
         return [ast.literal_eval(value) if value[0] in "\"'" else value]
     result = []
@@ -115,7 +118,7 @@ def selected_workflows(root: Path, event: str, branch: str, changed: list[str], 
 def runs_complete(expected: set[str], runs: list[dict]) -> tuple[bool, str | None]:
     latest = {}
     for run in runs:
-        path = run["path"]
+        path = run["path"].rsplit("@", 1)[0]
         if path in expected and (path not in latest or run.get("created_at", "") > latest[path].get("created_at", "")):
             latest[path] = run
     for path in sorted(expected):
@@ -125,6 +128,16 @@ def runs_complete(expected: set[str], runs: list[dict]) -> tuple[bool, str | Non
         if run["conclusion"] != "success":
             return False, f"{path}: {run['conclusion']}"
     return len(latest) == len(expected) and all(run["status"] == "completed" for run in latest.values()), None
+
+
+def matches_pull_request(run: dict, payload: dict) -> bool:
+    if run["pull_requests"]:
+        return any(
+            pr["number"] == payload["number"] and pr["base"]["sha"] == payload["pull_request"]["base"]["sha"]
+            for pr in run["pull_requests"]
+        )
+    head = payload["pull_request"]["head"]
+    return run.get("head_branch") == head["ref"] and (run.get("head_repository") or {}).get("full_name") == head["repo"]["full_name"]
 
 
 def _api(path: str) -> dict:
@@ -161,10 +174,7 @@ def main() -> int:
             created = datetime.fromisoformat(run["created_at"].replace("Z", "+00:00"))
             if created < earliest:
                 continue
-            if event == "pull_request" and not any(
-                pr["number"] == payload["number"] and pr["base"]["sha"] == payload["pull_request"]["base"]["sha"]
-                for pr in run["pull_requests"]
-            ):
+            if event == "pull_request" and not matches_pull_request(run, payload):
                 continue
             runs.append(run)
         complete, failure = runs_complete(expected, runs)
