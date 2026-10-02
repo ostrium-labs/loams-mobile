@@ -242,11 +242,15 @@ class SessionManager(
             }
         }
 
-    private fun keyOrNetworkMessage(e: Exception): String = when {
-        e is javax.net.ssl.SSLHandshakeException -> "This server's identity changed or its certificate is not trusted. Nothing was sent."
-        e.javaClass.name.contains("InvalidAlgorithmParameter") || e is IllegalStateException ->
-            "Set a screen lock on this phone first: the approval key needs one."
-        else -> "Could not reach the server: ${e.message ?: e.javaClass.simpleName}"
+    /** A fixed message for the UI; the exception itself goes to logcat only. */
+    private fun keyOrNetworkMessage(e: Exception): String {
+        android.util.Log.w("Loams", "pairing failed", e)
+        return when {
+            e is javax.net.ssl.SSLHandshakeException -> "This server's identity changed or its certificate is not trusted. Nothing was sent."
+            e.javaClass.name.contains("InvalidAlgorithmParameter") || e is IllegalStateException ->
+                "Set a screen lock on this phone first: the approval key needs one."
+            else -> "Could not reach the server. Check the address and your connection."
+        }
     }
 
     companion object {

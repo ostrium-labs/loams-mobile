@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.loams.app.session.AuthentikSignIn
 import dev.loams.app.session.PairResult
+import android.util.Log
 import kotlinx.coroutines.CancellationException
 import dev.loams.app.session.SessionManager
 import dev.loams.transport.Http
@@ -43,8 +44,9 @@ class WelcomeViewModel(private val session: SessionManager) : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // Never crash on a network error; say what happened.
-                PairResult.Failed("Could not reach the server: ${e.message ?: e.javaClass.simpleName}")
+                // Never crash on a network error. The UI gets a fixed message; details go to logcat.
+                Log.w(TAG, "pairing failed", e)
+                PairResult.Failed("Could not reach the server. Check the address and your connection.")
             } finally {
                 _busy.value = false
             }
@@ -79,5 +81,9 @@ class WelcomeViewModel(private val session: SessionManager) : ViewModel() {
             Http.client(TrustPolicy.System).newCall(Request.Builder().url("${server.trimEnd('/')}/mock/pairing").build()).execute().use { it.body.string() }
         }
         session.pairFromPayload(text)
+    }
+
+    private companion object {
+        const val TAG = "Loams"
     }
 }
