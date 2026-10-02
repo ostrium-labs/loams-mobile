@@ -24,10 +24,10 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           missing=0
-          for sha in $(git rev-list --no-merges "$BASE..$HEAD"); do
+          for sha in $(git rev-list "$BASE..$HEAD"); do
             email=$(git show -s --format=%ae "$sha")
             # Compare the trailer emails as literal text (an address may hold + or .).
-            signoffs=$(git show -s --format=%B "$sha" | sed -n 's/^Signed-off-by: .*<\(.*\)>[[:space:]]*$/\1/Ip')
+            signoffs=$(git show -s --format=%B "$sha" | git interpret-trailers --parse | sed -n 's/^Signed-off-by: .*<\(.*\)>[[:space:]]*$/\1/Ip')
             if ! printf '%s\n' "$signoffs" | grep -qixF -- "$email"; then
               echo "::error::$(git show -s --format='%h %s' "$sha") has no Signed-off-by for $email"
               missing=1

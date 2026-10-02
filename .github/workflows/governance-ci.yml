@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  checks: read
+  actions: read
 
 jobs:
   required:
@@ -29,36 +29,9 @@ jobs:
             base=$BEFORE_SHA
           fi
           git diff --check "$base" HEAD
-      - name: Require applicable GitHub Actions checks
+      - name: Test required-workflow selection
+        run: python3 scripts/ci/test_required_workflows.py
+      - name: Require applicable GitHub Actions workflows
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          DCO_CHECK: Developer Certificate of Origin
-        run: |
-          set -euo pipefail
-          stable_ids=unset
-          for ((attempt=1; attempt<=236; attempt++)); do
-            response=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100")
-            checks=$(jq -c '[.check_runs[] | select(.app.slug == "github-actions" and .name != "CI required") | {id,name,status,conclusion}]' <<< "$response")
-            if jq -e 'any(.[]; .status == "completed" and .conclusion != "success" and .conclusion != "skipped" and .conclusion != "neutral")' <<< "$checks" >/dev/null; then
-              echo "An applicable GitHub Actions check failed:" >&2
-              jq -r '.[] | select(.status == "completed" and .conclusion != "success" and .conclusion != "skipped" and .conclusion != "neutral") | "\(.name): \(.conclusion)"' <<< "$checks" >&2
-              exit 1
-            fi
-            if [[ "$GITHUB_EVENT_NAME" == pull_request ]] &&
-               ! jq -e --arg dco "$DCO_CHECK" 'any(.[]; .name == $dco)' <<< "$checks" >/dev/null; then
-              stable_ids=unset
-            elif jq -e 'all(.[]; .status == "completed")' <<< "$checks" >/dev/null; then
-              ids=$(jq -r '.[].id' <<< "$checks" | sort -n | tr '\n' ',')
-              if [[ "$ids" == "$stable_ids" ]]; then
-                echo "All applicable GitHub Actions checks passed."
-                exit 0
-              fi
-              stable_ids=$ids
-            else
-              stable_ids=unset
-            fi
-            sleep 30
-          done
-          echo "Timed out waiting for applicable GitHub Actions checks" >&2
-          exit 1
+        run: python3 scripts/ci/required_workflows.py
