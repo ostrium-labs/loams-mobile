@@ -22,7 +22,16 @@ public final class LoamsClients: Sendable {
     public let notifications: Loams_Notifications_V1_NotificationServiceClient
     private let token: TokenSource
 
-    public init(baseURL: String, token: @escaping TokenSource) {
+    public struct InsecureEndpoint: Error, LocalizedError {
+        public var errorDescription: String? { "The instance address must use https." }
+    }
+
+    /// Refuses a non-https address before any token can be attached; debug builds may reach
+    /// the local mock over http on loopback only (`PairingPayloads.issuerAllowed`).
+    public init(baseURL: String, allowInsecureLoopback: Bool, token: @escaping TokenSource) throws {
+        guard let url = URL(string: baseURL), PairingPayloads.issuerAllowed(url, allowInsecureLoopback: allowInsecureLoopback) else {
+            throw InsecureEndpoint()
+        }
         self.baseURL = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
         self.token = token
         let configuration = URLSessionConfiguration.ephemeral

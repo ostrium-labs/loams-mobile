@@ -16,6 +16,11 @@ public struct KeychainStore: SecretStore {
     let service: String
     let accessGroup: String?
 
+    /// The store the app and the Notification Service Extension share. TODO(Q420): the access
+    /// group `<TEAM>.dev.loams.app.shared` once the team id exists; until then each process has
+    /// its own default group, so the extension cannot read push keys and shows the generic text.
+    public static let shared = KeychainStore(accessGroup: nil)
+
     public init(service: String = "dev.loams.app", accessGroup: String? = nil) {
         self.service = service
         self.accessGroup = accessGroup

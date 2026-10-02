@@ -12,8 +12,7 @@ final class NotificationService: UNNotificationServiceExtension {
         handler = contentHandler
         let content = (request.content.mutableCopy() as? UNMutableNotificationContent) ?? UNMutableNotificationContent()
         self.content = content
-        // TODO(Q420): the shared keychain access group once the team id exists.
-        let keys = PushKeys(store: KeychainStore())
+        let keys = PushKeys(store: KeychainStore.shared)
         let opener = PushOpener(keyFor: { keys.privateKey(instanceID: $0) }, decode: NotificationDecoding.shown)
         let shown = opener.open(request.content.userInfo)
         content.title = shown.title

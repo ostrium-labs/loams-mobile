@@ -30,8 +30,9 @@ public struct Jwk: Sendable, Equatable, Codable {
     }
 
     /// The public JWK of a P-256 key, from its x9.63 representation (04 || x || y).
-    public static func p256(x963 raw: Data) -> Jwk {
+    public static func p256(x963 raw: Data) throws -> Jwk {
         let bytes = Array(raw)
+        guard bytes.count == 65, bytes[0] == 0x04 else { throw CryptoKitError.incorrectParameterSize }
         return Jwk(kty: "EC", crv: "P-256", x: Base64URL.encode(Data(bytes[1..<33])), y: Base64URL.encode(Data(bytes[33..<65])))
     }
 

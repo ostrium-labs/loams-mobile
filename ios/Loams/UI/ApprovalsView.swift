@@ -77,9 +77,11 @@ struct ApprovalDetail: View {
     @State private var typed = ""
     @State private var reason = ""
     @State private var result: String?
+    /// Set synchronously on tap, so a second tap cannot start a second decision.
+    @State private var inFlight = false
 
     private var live: Bool { model.approvalsStatus == .live }
-    private var busy: Bool { model.busyApprovalID == approval.id }
+    private var busy: Bool { inFlight || model.busyApprovalID == approval.id }
     private func allowed(_ d: Decision) -> Bool {
         !busy && DecisionRules.check(decision: d, pending: approval.state == .pending, destructive: approval.risk == .destructive,
                                      confirmText: approval.confirmText, typed: typed, reason: reason, live: live) == nil
@@ -122,7 +124,12 @@ struct ApprovalDetail: View {
     }
 
     private func decide(_ d: Decision) {
-        Task { result = await model.decide(approval, decision: d, reason: reason, typed: typed) }
+        guard !inFlight else { return }
+        inFlight = true
+        Task {
+            result = await model.decide(approval, decision: d, reason: reason, typed: typed)
+            inFlight = false
+        }
     }
 }
 

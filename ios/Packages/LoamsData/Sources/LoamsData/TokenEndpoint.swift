@@ -101,7 +101,8 @@ public struct TokenEndpoint: Sendable {
         }
         return .refused(
             error: obj["error"] as? String ?? "http_\(status)",
-            reason: Reason.fromWire(obj["loams_reason"] as? String ?? obj["error_description"] as? String),
+            // Only the machine field; error_description is free text.
+            reason: Reason.fromWire(obj["loams_reason"] as? String),
             description: obj["error_description"] as? String
         )
     }

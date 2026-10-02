@@ -44,7 +44,7 @@ final class AppModel {
     private var attempts: [String: String] = [:]
     private let webAuth = WebAuth()
 
-    init(secrets: SecretStore = KeychainStore(), keys: DecisionKeys? = nil) {
+    init(secrets: SecretStore = KeychainStore.shared, keys: DecisionKeys? = nil) {
         self.keys = keys ?? SecureEnclaveKeys(store: secrets)
         pushKeys = PushKeys(store: secrets)
         sessions = SessionStore(secrets: secrets)
@@ -91,7 +91,11 @@ final class AppModel {
     private func activate(_ record: SessionRecord, tokens: DeviceTokens?) {
         accessToken.value = tokens?.accessToken
         let box = accessToken
-        let clients = LoamsClients(baseURL: record.issuer, token: { box.value })
+        guard let clients = try? LoamsClients(baseURL: record.issuer, allowInsecureLoopback: Self.allowInsecureLoopback, token: { box.value }) else {
+            message = "The stored instance address is not https; pair again."
+            phase = .signedOut
+            return
+        }
         activate(backend: RemoteBackend(clients: clients, instanceID: record.instanceID, deviceID: record.deviceID), record: record)
     }
 
@@ -120,7 +124,7 @@ final class AppModel {
         do {
             // TODO(AP3 Task 3): pin payload.spki in the transport; checked here only by id + jkt.
             let issuer = payload.issuer.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            let clients = LoamsClients(baseURL: issuer, token: { nil })
+            let clients = try LoamsClients(baseURL: issuer, allowInsecureLoopback: Self.allowInsecureLoopback, token: { nil })
             let info = try await clients.instance.getInstance(request: .init(), headers: clients.headers).get()
             guard info.instanceID == payload.instanceID else {
                 message = "This server is a different Loams instance than the code you scanned."
@@ -159,7 +163,7 @@ final class AppModel {
         busy = true
         defer { busy = false }
         do {
-            let clients = LoamsClients(baseURL: serverURL, token: { nil })
+            let clients = try LoamsClients(baseURL: serverURL, allowInsecureLoopback: Self.allowInsecureLoopback, token: { nil })
             let info = try await clients.instance.getInstance(request: .init(), headers: clients.headers).get()
             guard let thumb = try await InstanceCheck.thumbprints(jwksURI: info.jwksUri).first else {
                 message = "This server publishes no instance key."
@@ -194,13 +198,17 @@ final class AppModel {
         busy = true
         defer { busy = false }
         do {
-            let clients = LoamsClients(baseURL: serverURL, token: { nil })
+            let clients = try LoamsClients(baseURL: serverURL, allowInsecureLoopback: Self.allowInsecureLoopback, token: { nil })
             let info = try await clients.instance.getInstance(request: .init(), headers: clients.headers).get()
             guard info.hasIdentityProvider else {
                 message = "This instance has no browser sign-in configured."
                 return
             }
-            let jkt = try await InstanceCheck.thumbprints(jwksURI: info.jwksUri).first ?? ""
+            // Trust on first use: the key seen now is recorded and checked on later pairings.
+            guard let jkt = try await InstanceCheck.thumbprints(jwksURI: info.jwksUri).first else {
+                message = "This server publishes no instance key."
+                return
+            }
             let token = try await webAuth.signIn(idpIssuer: info.identityProvider.issuer, clientID: info.identityProvider.iosClientID.isEmpty ? Loams.clientID : info.identityProvider.iosClientID)
             let jwk = try keys.publicJWK(instanceID: info.instanceID).json()
             let result = try await TokenEndpoint(issuer: serverURL).exchange(
